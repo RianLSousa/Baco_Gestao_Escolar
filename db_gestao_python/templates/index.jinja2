@@ -1,0 +1,37 @@
+<!-- index.jinja2 -->
+{% extends "_base.jinja2" %}
+
+{% block nav_title %}GESTÃO ESCOLAR{% endblock %}
+{% block title %}Gestão Escolar - Página Inicial{% endblock %}
+
+{% block content %}
+
+<div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
+    <div class="container-fluid py-3">
+        <h1 class="display-5 fw-bold">Sistema de Gestão Escolar</h1>
+        <p class="col-md-8 fs-5">
+            Módulo integrado para administração acadêmica: cadastro e consulta de Professores, Alunos, Turmas, Disciplinas e acompanhamento de desempenho com médias calculadas automaticamente.
+        </p>
+    </div>
+</div>
+
+<div class="row align-items-md-stretch">
+    <div class="col-md-6 mb-3">
+        <div class="h-100 p-4 text-white bg-dark rounded-3 shadow-sm">
+            <h2>Corpo Docente e Disciplinas</h2>
+            <p>Gerencie os professores cadastrados, suas cargas horárias de trabalho e as disciplinas ministradas por cada docente.</p>
+            <a href="/consultar/professor" class="btn btn-outline-light me-2">Ver Professores</a>
+            <a href="/cadastrar/professor" class="btn btn-primary">Novo Professor</a>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="h-100 p-4 bg-light border rounded-3 shadow-sm">
+            <h2>Corpo Discente e Turmas</h2>
+            <p>Cadastre alunos com dados de contato, datas de nascimento e alocação por turma e sala de aula.</p>
+            <a href="/consultar/aluno" class="btn btn-outline-dark me-2">Ver Alunos</a>
+            <a href="/cadastrar/aluno" class="btn btn-success">Novo Aluno</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

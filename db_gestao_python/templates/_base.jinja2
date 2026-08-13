@@ -1,0 +1,59 @@
+<!-- _base.jinja2 -->
+{% import "_macros.jinja2" as macros %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestão Escolar{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+    <script src="{{ url_for('static', filename='bootstrap.bundle.min.js') }}" defer></script>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg bg-dark border-bottom border-body mb-4" data-bs-theme="dark">
+        <div class="container-fluid text-center">
+            <a class="navbar-brand" href="{{ url_for('home') }}">{% block nav_title %}GESTÃO ESCOLAR{% endblock %}</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+                aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" aria-current="page" href="{{ url_for('home') }}">Home</a>
+                    </li>
+
+                    <!-- dropdowns de Consulta -->
+                    {{ macros.render_nav_dropdown("Consultar", {
+                    "/consultar/professor" : "Professores",
+                    "/consultar/aluno" : "Alunos",
+                    "/consultar/turma" : "Turmas",
+                    "/consultar/disciplina" : "Disciplinas",
+                    "/consultar/nota" : "Notas Lançadas",
+                    "/consultar/desempenho" : "Desempenho Geral",
+                    }) }}
+
+                    <!-- dropdowns de Cadastro -->
+                    {{ macros.render_nav_dropdown("Cadastrar", {
+                    "/cadastrar/professor" : "Professor",
+                    "/cadastrar/aluno" : "Aluno",
+                    "/cadastrar/turma" : "Turma",
+                    "/cadastrar/disciplina" : "Disciplina",
+                    "/cadastrar/nota" : "Lançar Nota",
+                    }) }}
+
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+
+</html>

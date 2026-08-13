@@ -1,0 +1,33 @@
+<!-- consultar.jinja2 -->
+
+{% extends "_base.jinja2" %}
+
+{% block nav_title %}GESTÃO ESCOLAR{% endblock %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+
+<h2 class="text-center" style="margin-bottom: 20px;">
+    {{ titulo }}
+</h2>
+
+<!-- Tabela com os dados consultados -->
+{{ macros.render_table(cabecalho, dados) }}
+
+{% if api_atualizar %}
+<form class="text-center" action="{{ api_atualizar }}" method="get">
+    <!-- Renderiza campo de busca por ID para atualizacao -->
+    {{ macros.render_input("Atualizar por ID:", "number", "id", "") }}
+    <button type="submit" class="btn btn-primary">Atualizar</button>
+</form>
+{% endif %}
+
+{% if api_apagar %}
+<form class="text-center" style="margin-top: 15px;" action="{{ api_apagar }}" method="post">
+    <!-- Renderiza campo de ID para exclusao -->
+    {{ macros.render_input("Apagar por ID:", "number", "id", "") }}
+    <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
+</form>
+{% endif %}
+
+{% endblock %}

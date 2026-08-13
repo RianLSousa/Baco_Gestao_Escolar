@@ -1,0 +1,24 @@
+<!-- cadastrar/disciplina.jinja2 -->
+
+{% extends "_base.jinja2" %}
+
+{% block nav_title %}GESTÃO ESCOLAR{% endblock %}
+{% block title %}Cadastrar Disciplina{% endblock %}
+
+{% block content %}
+
+<h2 class="text-center" style="margin-bottom: 20px;">
+    Cadastro de Disciplina
+</h2>
+
+<form class="text-center" action="{{ api }}" method="post">
+    {{ macros.render_input("Nome da Disciplina:", "text", "nome", "") }}
+    {{ macros.render_input("Carga Horária Total (h):", "number", "carga_horaria", "") }}
+
+    <!-- render_select(label, nome, opcoes, valor_pre_preenchido) -->
+    {{ macros.render_select("Professor Responsável:", "id_professor", professores, "") }}
+
+    <button type="submit" class="btn btn-primary">Cadastrar</button>
+</form>
+
+{% endblock %}

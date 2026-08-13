@@ -1,0 +1,23 @@
+<!-- cadastrar/professor.jinja2 -->
+
+{% extends "_base.jinja2" %}
+
+{% block nav_title %}GESTÃO ESCOLAR{% endblock %}
+{% block title %}Cadastrar Professor{% endblock %}
+
+{% block content %}
+
+<h2 class="text-center" style="margin-bottom: 20px;">
+    Cadastro de Professor
+</h2>
+
+<form class="text-center" action="{{ api }}" method="post">
+    <!-- render_input(label, tipo, nome, valor_pre_preenchido) -->
+    {{ macros.render_input("Nome:", "text", "nome", "") }}
+    {{ macros.render_input("Data de Nascimento:", "date", "data_nascimento", "") }}
+    {{ macros.render_input("Carga Horária Semanal (h):", "number", "carga_horaria_trabalho", "") }}
+
+    <button type="submit" class="btn btn-primary">Cadastrar</button>
+</form>
+
+{% endblock %}

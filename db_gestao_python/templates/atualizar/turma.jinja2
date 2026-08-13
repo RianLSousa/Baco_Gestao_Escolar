@@ -1,0 +1,27 @@
+<!-- atualizar/turma.jinja2 -->
+
+{% extends "_base.jinja2" %}
+
+{% block nav_title %}GESTÃO ESCOLAR{% endblock %}
+{% block title %}Atualizar Turma{% endblock %}
+
+{% block content %}
+
+<h2 class="text-center" style="margin-bottom: 20px;">
+    Atualizar Turma
+</h2>
+
+<form class="text-center" action="{{ api }}" method="post">
+    {{ macros.render_input("", "hidden", "id_turma", id_turma) }}
+
+    {{ macros.render_input("Nome da Turma:", "text", "nome_turma", nome_turma) }}
+    {{ macros.render_input("Ano Letivo:", "number", "ano_letivo", ano_letivo) }}
+    {{ macros.render_input("Sala de Aula:", "text", "sala_aula", sala_aula) }}
+
+    <!-- Disciplinas vinculadas à turma -->
+    {{ macros.render_checkboxes("Disciplinas da Turma:", "disciplinas", todas_disciplinas, disciplinas_selecionadas) }}
+
+    <button type="submit" class="btn btn-primary mt-3">Atualizar Turma</button>
+</form>
+
+{% endblock %}

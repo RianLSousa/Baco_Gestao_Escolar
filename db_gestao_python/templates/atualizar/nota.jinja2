@@ -1,0 +1,35 @@
+<!-- atualizar/nota.jinja2 -->
+
+{% extends "_base.jinja2" %}
+
+{% block nav_title %}GESTÃO ESCOLAR{% endblock %}
+{% block title %}Atualizar Nota{% endblock %}
+
+{% block content %}
+
+<h2 class="text-center" style="margin-bottom: 20px;">
+    Atualizar Nota
+</h2>
+
+<form class="text-center" action="{{ api }}" method="post">
+    {{ macros.render_input("", "hidden", "id_nota", id_nota) }}
+
+    <!-- Seleção de Aluno, Turma e Disciplina -->
+    {{ macros.render_select("Aluno:", "id_aluno", alunos, id_aluno) }}
+    {{ macros.render_select("Turma:", "id_turma", turmas, id_turma) }}
+    {{ macros.render_select("Disciplina:", "id_disciplina", disciplinas, id_disciplina) }}
+
+    <!-- Unidade e Nota -->
+    {% set opcoes_unidade = [
+        ("1", "Unidade 1"),
+        ("2", "Unidade 2"),
+        ("3", "Unidade 3"),
+        ("4", "Unidade 4")
+    ] %}
+    {{ macros.render_select("Unidade:", "unidade", opcoes_unidade, unidade) }}
+    {{ macros.render_input("Nota (0.00 a 10.00):", "number\" step=\"0.01\" min=\"0\" max=\"10", "nota", nota) }}
+
+    <button type="submit" class="btn btn-primary mt-3">Atualizar Nota</button>
+</form>
+
+{% endblock %}

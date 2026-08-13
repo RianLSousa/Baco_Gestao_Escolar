@@ -1,0 +1,39 @@
+<!-- cadastrar/aluno.jinja2 -->
+
+{% extends "_base.jinja2" %}
+
+{% block nav_title %}GESTÃO ESCOLAR{% endblock %}
+{% block title %}Cadastrar Aluno{% endblock %}
+
+{% block content %}
+
+<h2 class="text-center" style="margin-bottom: 20px;">
+    Cadastro de Aluno
+</h2>
+
+<form class="text-center" action="{{ api }}" method="post">
+    <!-- Dados básicos do aluno -->
+    {{ macros.render_input("Nome:", "text", "nome", "") }}
+    {{ macros.render_input("Data de Nascimento:", "date", "data_nascimento", "") }}
+    {{ macros.render_input("Endereço:", "text", "endereco", "") }}
+    {{ macros.render_input("Telefone:", "text", "telefone", "") }}
+
+    <!-- Seleção da Turma -->
+    {{ macros.render_select("Turma:", "id_turma", turmas, "") }}
+
+    <hr class="my-4">
+    <h5 class="text-start mb-3 text-secondary">Condições Médicas / Alergias / Deficiências (Opcional)</h5>
+
+    {% set opcoes_condicao = [
+        ("", "Nenhuma"),
+        ("deficiencia", "Deficiência"),
+        ("alergia", "Alergia"),
+        ("condicao_medica", "Condição Médica")
+    ] %}
+    {{ macros.render_select("Tipo de Condição:", "tipo_condicao", opcoes_condicao, "") }}
+    {{ macros.render_input("Descrição da Condição:", "text", "descricao_condicao", "") }}
+
+    <button type="submit" class="btn btn-primary mt-3">Cadastrar Aluno</button>
+</form>
+
+{% endblock %}

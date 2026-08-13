@@ -1,0 +1,41 @@
+<!-- atualizar/aluno.jinja2 -->
+
+{% extends "_base.jinja2" %}
+
+{% block nav_title %}GESTÃO ESCOLAR{% endblock %}
+{% block title %}Atualizar Aluno{% endblock %}
+
+{% block content %}
+
+<h2 class="text-center" style="margin-bottom: 20px;">
+    Atualizar Aluno
+</h2>
+
+<form class="text-center" action="{{ api }}" method="post">
+    <!-- Campo oculto para o ID -->
+    {{ macros.render_input("", "hidden", "id_aluno", id_aluno) }}
+
+    {{ macros.render_input("Nome:", "text", "nome", nome) }}
+    {{ macros.render_input("Data de Nascimento:", "date", "data_nascimento", data_nascimento) }}
+    {{ macros.render_input("Endereço:", "text", "endereco", endereco) }}
+    {{ macros.render_input("Telefone:", "text", "telefone", telefone) }}
+
+    <!-- Seleção da Turma -->
+    {{ macros.render_select("Turma:", "id_turma", turmas, id_turma) }}
+
+    <hr class="my-4">
+    <h5 class="text-start mb-3 text-secondary">Condições Médicas / Alergias / Deficiências</h5>
+
+    {% set opcoes_condicao = [
+        ("", "Nenhuma"),
+        ("deficiencia", "Deficiência"),
+        ("alergia", "Alergia"),
+        ("condicao_medica", "Condição Médica")
+    ] %}
+    {{ macros.render_select("Tipo de Condição:", "tipo_condicao", opcoes_condicao, tipo_condicao) }}
+    {{ macros.render_input("Descrição da Condição:", "text", "descricao_condicao", descricao_condicao) }}
+
+    <button type="submit" class="btn btn-primary mt-3">Atualizar Aluno</button>
+</form>
+
+{% endblock %}
