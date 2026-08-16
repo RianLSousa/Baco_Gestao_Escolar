@@ -194,88 +194,17 @@ JOIN disciplina   d ON n.id_disciplina = d.id_disciplina
 GROUP BY a.id_aluno, a.nome, t.nome_turma, d.nome;
 
 -- ============================================================
--- TRIGGERS
+-- PROCEDURES AUXILIARES & TRIGGERS
 -- ============================================================
 
 DELIMITER //
 
-CREATE TRIGGER trg_validar_nota_insert
-BEFORE INSERT ON nota
-FOR EACH ROW
-BEGIN
-    IF NEW.nota < 0 OR NEW.nota > 10 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Erro: nota deve estar entre 0.00 e 10.00';
-    END IF;
-END//
-
-CREATE TRIGGER trg_validar_nota_update
-BEFORE UPDATE ON nota
-FOR EACH ROW
-BEGIN
-    IF NEW.nota < 0 OR NEW.nota > 10 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Erro: nota deve estar entre 0.00 e 10.00';
-    END IF;
-END//
-
-CREATE TRIGGER trg_media_after_insert
-AFTER INSERT ON nota
-FOR EACH ROW
-BEGIN
-    DECLARE v_media    DECIMAL(4,2);
-    DECLARE v_situacao VARCHAR(10);
-
-    SELECT ROUND(AVG(nota), 2)
-    INTO   v_media
-    FROM   nota
-    WHERE  id_aluno      = NEW.id_aluno
-      AND  id_disciplina = NEW.id_disciplina
-      AND  id_turma      = NEW.id_turma;
-
-    IF v_media >= 6.0 THEN
-        SET v_situacao = 'APROVADO';
-    ELSE
-        SET v_situacao = 'REPROVADO';
-    END IF;
-
-    INSERT INTO media_aluno (id_aluno, id_disciplina, id_turma, media, situacao)
-    VALUES (NEW.id_aluno, NEW.id_disciplina, NEW.id_turma, v_media, v_situacao)
-    ON DUPLICATE KEY UPDATE
-        media    = v_media,
-        situacao = v_situacao;
-END//
-
-CREATE TRIGGER trg_media_after_update
-AFTER UPDATE ON nota
-FOR EACH ROW
-BEGIN
-    DECLARE v_media    DECIMAL(4,2);
-    DECLARE v_situacao VARCHAR(10);
-
-    SELECT ROUND(AVG(nota), 2)
-    INTO   v_media
-    FROM   nota
-    WHERE  id_aluno      = NEW.id_aluno
-      AND  id_disciplina = NEW.id_disciplina
-      AND  id_turma      = NEW.id_turma;
-
-    IF v_media >= 6.0 THEN
-        SET v_situacao = 'APROVADO';
-    ELSE
-        SET v_situacao = 'REPROVADO';
-    END IF;
-
-    INSERT INTO media_aluno (id_aluno, id_disciplina, id_turma, media, situacao)
-    VALUES (NEW.id_aluno, NEW.id_disciplina, NEW.id_turma, v_media, v_situacao)
-    ON DUPLICATE KEY UPDATE
-        media    = v_media,
-        situacao = v_situacao;
-END//
-
-CREATE TRIGGER trg_media_after_delete
-AFTER DELETE ON nota
-FOR EACH ROW
+-- Procedure para centralizar a lógica de cálculo e atualização da média (DRY)
+CREATE PROCEDURE sp_recalcular_media(
+    IN p_id_aluno      INT,
+    IN p_id_disciplina INT,
+    IN p_id_turma      INT
+)
 BEGIN
     DECLARE v_count    INT;
     DECLARE v_media    DECIMAL(4,2);
@@ -284,15 +213,15 @@ BEGIN
     SELECT COUNT(*), ROUND(AVG(nota), 2)
     INTO   v_count, v_media
     FROM   nota
-    WHERE  id_aluno      = OLD.id_aluno
-      AND  id_disciplina = OLD.id_disciplina
-      AND  id_turma      = OLD.id_turma;
+    WHERE  id_aluno      = p_id_aluno
+      AND  id_disciplina = p_id_disciplina
+      AND  id_turma      = p_id_turma;
 
     IF v_count = 0 THEN
         DELETE FROM media_aluno
-        WHERE id_aluno      = OLD.id_aluno
-          AND id_disciplina = OLD.id_disciplina
-          AND id_turma      = OLD.id_turma;
+        WHERE id_aluno      = p_id_aluno
+          AND id_disciplina = p_id_disciplina
+          AND id_turma      = p_id_turma;
     ELSE
         IF v_media >= 6.0 THEN
             SET v_situacao = 'APROVADO';
@@ -300,13 +229,34 @@ BEGIN
             SET v_situacao = 'REPROVADO';
         END IF;
 
-        UPDATE media_aluno
-        SET media    = v_media,
-            situacao = v_situacao
-        WHERE id_aluno      = OLD.id_aluno
-          AND id_disciplina = OLD.id_disciplina
-          AND id_turma      = OLD.id_turma;
+        INSERT INTO media_aluno (id_aluno, id_disciplina, id_turma, media, situacao)
+        VALUES (p_id_aluno, p_id_disciplina, p_id_turma, v_media, v_situacao)
+        ON DUPLICATE KEY UPDATE
+            media    = v_media,
+            situacao = v_situacao;
     END IF;
+END//
+
+-- Triggers enxutos delegando o cálculo para a procedure centralizada
+CREATE TRIGGER trg_media_after_insert
+AFTER INSERT ON nota
+FOR EACH ROW
+BEGIN
+    CALL sp_recalcular_media(NEW.id_aluno, NEW.id_disciplina, NEW.id_turma);
+END//
+
+CREATE TRIGGER trg_media_after_update
+AFTER UPDATE ON nota
+FOR EACH ROW
+BEGIN
+    CALL sp_recalcular_media(NEW.id_aluno, NEW.id_disciplina, NEW.id_turma);
+END//
+
+CREATE TRIGGER trg_media_after_delete
+AFTER DELETE ON nota
+FOR EACH ROW
+BEGIN
+    CALL sp_recalcular_media(OLD.id_aluno, OLD.id_disciplina, OLD.id_turma);
 END//
 
 DELIMITER ;
