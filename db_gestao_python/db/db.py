@@ -1,4 +1,8 @@
+import os
+
 import mysql.connector
+from dotenv import load_dotenv
+from flask import session
 
 from mysql.connector import Error
 from mysql.connector.pooling import PooledMySQLConnection
@@ -6,25 +10,37 @@ from mysql.connector.abstracts import MySQLConnectionAbstract
 
 from typing import Any
 
+load_dotenv()
+
 
 class DatabaseConnection:
-    def __init__(self, db: str, host: str = "localhost", user: str = "root", password: str = "") -> None:
+    def __init__(
+        self,
+        db: str,
+        host: str | None = None,
+        user: str | None = None,
+        password: str | None = None,
+    ) -> None:
         super().__init__()
         self._db: str = db
-        self._host: str = host
+        self._host: str = host or os.getenv("DB_HOST", "localhost")
+
+        # Se usuário/senha não vieram explícitos (uso normal dentro das rotas),
+        # busca da sessão do Flask, que é preenchida no login.
+        if user is None or password is None:
+            user = session.get("db_user")
+            password = session.get("db_password")
+
+        if not user or password is None:
+            raise PermissionError(
+                "Nenhum usuário conectado ao banco de dados. É necessário fazer login."
+            )
+
         self._user: str = user
         self._password: str = password
         self._connection: PooledMySQLConnection | MySQLConnectionAbstract | None = None
 
     def __enter__(self) -> PooledMySQLConnection | MySQLConnectionAbstract:
-        """
-        Estabelece a conexão com o banco de dados e retorna a conexão.
-
-        :param db: nome do banco de dados
-        :param host: endereço do servidor de banco de dados (default: "localhost")
-        :param user: nome de usuário do banco de dados (default: "root")
-        :param password: senha do banco de dados (default: "")
-        """
         try:
             self._connection = mysql.connector.connect(
                 host=self._host,
@@ -32,18 +48,14 @@ class DatabaseConnection:
                 password=self._password,
                 database=self._db,
             )
-
             if self._connection.is_connected():
-                print('Conexão com o banco de dados bem-sucedida!')
+                print(f"Conexão com o banco de dados bem-sucedida! (usuário: {self._user})")
         except Error as e:
             print(f'Erro ao conectar ao banco de dados: {e}')
             raise
         return self._connection
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """
-        Fecha a conexão com o banco de dados ao sair do contexto.
-        """
         if self._connection and self._connection.is_connected():
             self._connection.close()
             self._connection = None
@@ -51,12 +63,6 @@ class DatabaseConnection:
 
 
 def executar_select(db: str, consulta_sql: str, parametros: tuple[Any, ...] = ()) -> list[tuple[Any, ...]]:
-    """
-    Conecta com o DB e executa uma consulta SQL do tipo SELECT FROM,
-    passando uma lista de parametros para a consulta.
-
-    Retorna uma lista de registros encontrados pela consulta SELECT.
-    """
     try:
         with DatabaseConnection(db=db) as connection:
             cursor = connection.cursor()
@@ -71,12 +77,6 @@ def executar_select(db: str, consulta_sql: str, parametros: tuple[Any, ...] = ()
 
 
 def executar_insert_delete_update(db: str, consulta_sql: str, parametros: tuple[Any, ...] = ()) -> int:
-    """
-    Conecta com o DB e executa uma consulta SQL do tipo INSERT INTO, DELETE ou UPDATE,
-    passando uma lista de parametros para a consulta.
-
-    :return: qtd linhas alteradas se operacao bem sucedida, do contrario retorna -1.
-    """
     try:
         with DatabaseConnection(db=db) as connection:
             cursor = connection.cursor()
@@ -92,9 +92,6 @@ def executar_insert_delete_update(db: str, consulta_sql: str, parametros: tuple[
 
 
 def executar_insert_retornando_id(db: str, consulta_sql: str, parametros: tuple[Any, ...] = ()) -> int:
-    """
-    Conecta com o DB, executa um INSERT INTO e retorna o ID autoincrementado gerado.
-    """
     try:
         with DatabaseConnection(db=db) as connection:
             cursor = connection.cursor()

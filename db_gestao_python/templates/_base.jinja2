@@ -47,6 +47,22 @@
                     }) }}
 
                 </ul>
+
+                <!-- Status de login, alinhado à direita -->
+                <ul class="navbar-nav ms-auto">
+                    {% if session.get('db_user') %}
+                    <li class="nav-item">
+                        <span class="nav-link disabled">Logado como: <strong>{{ session.get('db_user') }}</strong></span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Sair</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('tela_login') }}">Entrar</a>
+                    </li>
+                    {% endif %}
+                </ul>
             </div>
         </div>
     </nav>

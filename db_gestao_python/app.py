@@ -1,17 +1,63 @@
+import os
 import time
 from datetime import date, datetime
 
-from flask import Flask, render_template, request
+from dotenv import load_dotenv
+from flask import Flask, redirect, render_template, request, session, url_for
+from mysql.connector import Error
 
 from db.db import (
+    DatabaseConnection,
     executar_insert_delete_update,
     executar_insert_retornando_id,
     executar_select,
 )
 
+load_dotenv()
+
+
 # Criar a aplicacao Flask
 app = Flask(__name__)
 DB_NAME = "gestao_escolar"
+
+app.secret_key = os.getenv("SECRET_KEY")
+
+# seção de autenticação 
+
+ROTAS_PUBLICAS = {"tela_login", "api_login", "static"}
+
+@app.before_request
+def exigir_login():
+    if request.endpoint not in ROTAS_PUBLICAS and not session.get("db_user"):
+        return redirect(url_for("tela_login"))
+
+
+@app.route("/login", methods=["GET"])
+def tela_login():
+    erro = request.args.get("erro")
+    return render_template("login.jinja2", erro=erro)
+
+
+@app.route("/login", methods=["POST"])
+def api_login():
+    usuario = request.form.get("usuario") or ""
+    senha = request.form.get("senha") or ""
+
+    try:
+        with DatabaseConnection(db=DB_NAME, user=usuario, password=senha):
+            pass  # se não lançar erro, as credenciais são válidas
+    except Error:
+        return redirect(url_for("tela_login", erro="Usuário ou senha inválidos."))
+
+    session["db_user"] = usuario
+    session["db_password"] = senha
+    return redirect(url_for("home"))
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("tela_login"))
 
 ##################
 #     TELAS      #
