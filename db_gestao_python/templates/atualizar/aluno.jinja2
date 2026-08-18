@@ -26,16 +26,75 @@
     <hr class="my-4">
     <h5 class="text-start mb-3 text-secondary">Condições Médicas / Alergias / Deficiências</h5>
 
-    {% set opcoes_condicao = [
-        ("", "Nenhuma"),
-        ("deficiencia", "Deficiência"),
-        ("alergia", "Alergia"),
-        ("condicao_medica", "Condição Médica")
-    ] %}
-    {{ macros.render_select("Tipo de Condição:", "tipo_condicao", opcoes_condicao, tipo_condicao) }}
-    {{ macros.render_input("Descrição da Condição:", "text", "descricao_condicao", descricao_condicao) }}
+    <!-- Modelo de uma linha em branco, usado pelo JS ao clicar em "Adicionar Condição" -->
+    <template id="template-condicao">
+        <div class="row mb-2 align-items-center condicao-row">
+            <div class="col-5">
+                <select class="form-select" name="tipo_condicao">
+                    <option value="">Selecione o tipo</option>
+                    {% for id_tipo, nome_tipo in tipos_condicao %}
+                    <option value="{{ id_tipo }}">{{ nome_tipo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-5">
+                <input type="text" class="form-control" name="descricao_condicao" placeholder="Descrição (ex.: Alergia a amendoim)">
+            </div>
+            <div class="col-2">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-condicao">Remover</button>
+            </div>
+        </div>
+    </template>
 
+    <!-- Linhas já existentes do aluno, pré-preenchidas pelo backend -->
+    <div id="condicoes-container" class="text-start">
+        {% for id_tipo_atual, descricao_atual in condicoes %}
+        <div class="row mb-2 align-items-center condicao-row">
+            <div class="col-5">
+                <select class="form-select" name="tipo_condicao">
+                    <option value="">Selecione o tipo</option>
+                    {% for id_tipo, nome_tipo in tipos_condicao %}
+                    {% set selecionado = "selected" if id_tipo|string == id_tipo_atual|string else "" %}
+                    <option value="{{ id_tipo }}" {{ selecionado }}>{{ nome_tipo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-5">
+                <input type="text" class="form-control" name="descricao_condicao" value="{{ descricao_atual }}">
+            </div>
+            <div class="col-2">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-condicao">Remover</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button type="button" id="btn-add-condicao" class="btn btn-outline-secondary btn-sm mt-2 mb-3">
+        + Adicionar Condição
+    </button>
+
+    <br>
     <button type="submit" class="btn btn-primary mt-3">Atualizar Aluno</button>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const template = document.getElementById('template-condicao');
+    const container = document.getElementById('condicoes-container');
+
+    function adicionarLinhaCondicao() {
+        const clone = template.content.cloneNode(true);
+        container.appendChild(clone);
+    }
+
+    container.addEventListener('click', function (evento) {
+        if (evento.target.classList.contains('remove-condicao')) {
+            evento.target.closest('.condicao-row').remove();
+        }
+    });
+
+    document.getElementById('btn-add-condicao').addEventListener('click', adicionarLinhaCondicao);
+});
+</script>
 
 {% endblock %}

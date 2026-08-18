@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS professor (
     carga_horaria_trabalho DECIMAL(5,1) NOT NULL,
     CONSTRAINT pk_professor   PRIMARY KEY (id_professor),
     CONSTRAINT chk_carga_prof CHECK (carga_horaria_trabalho > 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+);  
 
 -- Tabela turma 
 CREATE TABLE IF NOT EXISTS turma (
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS turma (
     ano_letivo INT         NOT NULL,
     sala_aula  VARCHAR(25) DEFAULT NULL,
     CONSTRAINT pk_turma PRIMARY KEY (id_turma)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+);  
 
 -- Tabela disciplina 
 CREATE TABLE IF NOT EXISTS disciplina (
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS disciplina (
     CONSTRAINT fk_disc_prof   FOREIGN KEY (id_professor)
                               REFERENCES professor(id_professor)
                               ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+);  
 
 -- Tabela aluno 
 CREATE TABLE IF NOT EXISTS aluno (
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS aluno (
     CONSTRAINT fk_aluno_turma FOREIGN KEY (id_turma)
                               REFERENCES turma(id_turma)
                               ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+);  
 
 -- Tabela de junção turma_disciplina
 CREATE TABLE IF NOT EXISTS turma_disciplina (
@@ -68,19 +68,29 @@ CREATE TABLE IF NOT EXISTS turma_disciplina (
     CONSTRAINT fk_td_d   FOREIGN KEY (id_disciplina)
                          REFERENCES disciplina(id_disciplina)
                          ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+);  
+
+
+-- Tabela tipo_condicao
+CREATE TABLE tipo_condicao (
+    id_tipo_condicao INT NOT NULL AUTO_INCREMENT,
+    nome VARCHAR(50) NOT NULL,
+    CONSTRAINT pk_tipo_condicao PRIMARY KEY (id_tipo_condicao),
+    CONSTRAINT uq_tipo_condicao_nome UNIQUE (nome)
+);
+
 
 -- Tabela condicao_aluno
 CREATE TABLE IF NOT EXISTS condicao_aluno (
-    id_condicao INT          NOT NULL AUTO_INCREMENT,
-    id_aluno    INT          NOT NULL,
-    tipo        ENUM('deficiencia','alergia','condicao_medica') NOT NULL,
+    id_condicao INT NOT NULL AUTO_INCREMENT,
+    id_aluno INT NOT NULL,
+    id_tipo_condicao INT NOT NULL,
     descricao   VARCHAR(250) NOT NULL,
     CONSTRAINT pk_condicao   PRIMARY KEY (id_condicao),
-    CONSTRAINT fk_cond_aluno FOREIGN KEY (id_aluno)
-                             REFERENCES aluno(id_aluno)
-                             ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    CONSTRAINT fk_cond_aluno FOREIGN KEY (id_aluno) REFERENCES aluno(id_aluno) ON DELETE RESTRICT,
+    CONSTRAINT fk_cond_tipo FOREIGN KEY (id_tipo_condicao) REFERENCES tipo_condicao(id_tipo_condicao) ON DELETE RESTRICT,
+    CONSTRAINT uq_condicao UNIQUE (id_aluno, id_tipo_condicao, descricao)
+);  
 
 -- Tabela media_aluno
 CREATE TABLE IF NOT EXISTS media_aluno (
@@ -96,7 +106,7 @@ CREATE TABLE IF NOT EXISTS media_aluno (
     CONSTRAINT fk_ma_td    FOREIGN KEY (id_turma, id_disciplina)
                            REFERENCES turma_disciplina(id_turma, id_disciplina)
                            ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+);  
 
 -- Tabela de notas 
 CREATE TABLE IF NOT EXISTS nota (
@@ -115,7 +125,7 @@ CREATE TABLE IF NOT EXISTS nota (
     CONSTRAINT fk_nota_td    FOREIGN KEY (id_turma, id_disciplina)
                              REFERENCES turma_disciplina(id_turma, id_disciplina)
                              ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+);  
 
 -- ============================================================
 -- INSERÇÃO DE DADOS INICIAIS (DML)
@@ -144,10 +154,20 @@ INSERT INTO aluno (nome, data_nascimento, endereco, telefone, id_turma) VALUES
 ('Diego Ferreira',    '2010-11-30', 'Rua Nova, 23',       '(71)99444-4444', 2),
 ('Elisa Cardoso',     '2011-05-19', 'Av. Brasil, 100',    '(71)99555-5555', 1);
 
-INSERT INTO condicao_aluno (id_aluno, tipo, descricao) VALUES
-(1, 'deficiencia',     'Dislexia leve'),
-(1, 'alergia',         'Alergia a amendoim'),
-(3, 'condicao_medica', 'Diabetes tipo 1');
+--  inserindo dados nas tabelas de condição e em junção de condição
+INSERT INTO tipo_condicao (nome) VALUES
+('Deficiência'),
+('Alergia'),
+('Condição médica');
+
+INSERT INTO condicao_aluno (id_aluno, id_tipo_condicao, descricao)
+SELECT 1, id_tipo_condicao, 'Dislexia leve'        FROM tipo_condicao WHERE nome = 'Deficiência'
+UNION ALL
+SELECT 1, id_tipo_condicao, 'Alergia a amendoim'    FROM tipo_condicao WHERE nome = 'Alergia'
+UNION ALL
+SELECT 3, id_tipo_condicao, 'Diabetes tipo 1'       FROM tipo_condicao WHERE nome = 'Condição médica';
+
+
 
 -- Vínculos turma × disciplina
 INSERT INTO turma_disciplina (id_turma, id_disciplina) VALUES

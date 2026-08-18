@@ -82,7 +82,7 @@ def executar_insert_delete_update(db: str, consulta_sql: str, parametros: tuple[
             cursor = connection.cursor()
             cursor.execute(consulta_sql, params=parametros)
             connection.commit()
-            qtd_linhas: int = cursor.rowcount or -1
+            qtd_linhas: int = cursor.rowcount if cursor.rowcount is not None else -1
             if cursor.with_rows:
                 cursor.fetchall()
             return qtd_linhas

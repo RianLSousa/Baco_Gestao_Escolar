@@ -113,10 +113,11 @@ def tela_consultar_aluno():
                 COALESCE(a.endereco, '-') AS endereco, 
                 COALESCE(a.telefone, '-') AS telefone, 
                 COALESCE(t.nome_turma, 'Sem Turma') AS turma,
-                COALESCE(GROUP_CONCAT(CONCAT(ca.tipo, ': ', ca.descricao) SEPARATOR '; '), 'Nenhuma') AS condicoes
+                COALESCE(GROUP_CONCAT(DISTINCT CONCAT(tc.nome, ': ', ca.descricao) SEPARATOR '; '), 'Nenhuma') AS condicoes
             FROM aluno a
             LEFT JOIN turma t ON a.id_turma = t.id_turma
             LEFT JOIN condicao_aluno ca ON a.id_aluno = ca.id_aluno
+            LEFT JOIN tipo_condicao tc ON ca.id_tipo_condicao = tc.id_tipo_condicao
             GROUP BY a.id_aluno, a.nome, a.data_nascimento, a.endereco, a.telefone, t.nome_turma
             ORDER BY a.id_aluno
         """
@@ -138,10 +139,15 @@ def tela_cadastrar_aluno():
         db=DB_NAME,
         consulta_sql="SELECT id_turma, nome_turma FROM turma ORDER BY nome_turma"
     )
+    tipos_condicao = executar_select(
+        db=DB_NAME,
+        consulta_sql="SELECT id_tipo_condicao, nome FROM tipo_condicao ORDER BY nome"
+    )
     return render_template(
         "cadastrar/aluno.jinja2",
         api="/api/cadastrar/aluno",
         turmas=[("", "Sem Turma")] + list(turmas),
+        tipos_condicao=tipos_condicao,
     )
 
 
@@ -162,15 +168,18 @@ def tela_atualizar_aluno():
         return f"ERRO: Aluno com ID '{id_aluno_req}' não encontrado. <a href='/consultar/aluno'>Voltar</a>"
 
     id_aluno, nome, data_nascimento, endereco, telefone, id_turma = registros[0]
-    
-    # Buscar condicao medica existente
+
+    # Busca TODAS as condições existentes do aluno (não só a primeira)
     condicoes = executar_select(
         db=DB_NAME,
-        consulta_sql="SELECT tipo, descricao FROM condicao_aluno WHERE id_aluno = %s LIMIT 1",
+        consulta_sql="SELECT id_tipo_condicao, descricao FROM condicao_aluno WHERE id_aluno = %s",
         parametros=(id_aluno,)
     )
-    tipo_condicao = condicoes[0][0] if condicoes else ""
-    descricao_condicao = condicoes[0][1] if condicoes else ""
+
+    tipos_condicao = executar_select(
+        db=DB_NAME,
+        consulta_sql="SELECT id_tipo_condicao, nome FROM tipo_condicao ORDER BY nome"
+    )
 
     turmas = executar_select(
         db=DB_NAME,
@@ -186,8 +195,8 @@ def tela_atualizar_aluno():
         endereco=endereco or "",
         telefone=telefone or "",
         id_turma=id_turma,
-        tipo_condicao=tipo_condicao,
-        descricao_condicao=descricao_condicao,
+        condicoes=condicoes,
+        tipos_condicao=tipos_condicao,
         turmas=[("", "Sem Turma")] + list(turmas),
     )
 
@@ -554,15 +563,26 @@ def api_cadastrar_aluno():
     if id_gerado < 0:
         return "ERRO ao cadastrar aluno. Verifique os logs do console."
 
-    # Cadastro opcional de condicao medica / alergia
-    tipo_condicao = request.form.get('tipo_condicao')
-    descricao_condicao = request.form.get('descricao_condicao')
-    if tipo_condicao and descricao_condicao:
-        executar_insert_delete_update(
-            db=DB_NAME,
-            consulta_sql="INSERT INTO condicao_aluno (id_aluno, tipo, descricao) VALUES (%s, %s, %s)",
-            parametros=(id_gerado, tipo_condicao, descricao_condicao)
-        )
+    # Cadastro de 0, 1 ou várias condições (mesmo padrão de getlist já usado nas
+    # disciplinas da turma, mas aqui para tipo_condicao + descricao_condicao)
+    tipos_condicao = request.form.getlist('tipo_condicao')
+    descricoes_condicao = request.form.getlist('descricao_condicao')
+    for tipo, descricao in zip(tipos_condicao, descricoes_condicao):
+        if tipo and descricao.strip():
+            qtd_cond = executar_insert_delete_update(
+                db=DB_NAME,
+                consulta_sql="""
+                    INSERT INTO condicao_aluno (id_aluno, id_tipo_condicao, descricao)
+                    VALUES (%s, %s, %s)
+                """,
+                parametros=(id_gerado, tipo, descricao.strip())
+            )
+            if qtd_cond < 0:
+                return (
+                    "SUCESSO PARCIAL: Aluno cadastrado, mas uma das condições não pôde ser "
+                    "salva (pode ser uma condição duplicada para este aluno). "
+                    f"<a href='/atualizar/aluno?id={id_gerado}'>Revisar Aluno</a>"
+                )
 
     return f"SUCESSO: Aluno cadastrado com sucesso! <a href='/consultar/aluno'>Ver Lista</a>"
 
@@ -593,21 +613,31 @@ def api_atualizar_aluno():
     if qtd < 0:
         return "ERRO ao atualizar aluno. Verifique os logs do console."
 
-    # Atualizacao da condicao medica
-    tipo_condicao = request.form.get('tipo_condicao')
-    descricao_condicao = request.form.get('descricao_condicao')
-
+    # Substitui todas as condições do aluno pelas que vieram do formulário
     executar_insert_delete_update(
         db=DB_NAME,
         consulta_sql="DELETE FROM condicao_aluno WHERE id_aluno = %s",
         parametros=(id_aluno,)
     )
-    if tipo_condicao and descricao_condicao:
-        executar_insert_delete_update(
-            db=DB_NAME,
-            consulta_sql="INSERT INTO condicao_aluno (id_aluno, tipo, descricao) VALUES (%s, %s, %s)",
-            parametros=(id_aluno, tipo_condicao, descricao_condicao)
-        )
+
+    tipos_condicao = request.form.getlist('tipo_condicao')
+    descricoes_condicao = request.form.getlist('descricao_condicao')
+    for tipo, descricao in zip(tipos_condicao, descricoes_condicao):
+        if tipo and descricao.strip():
+            qtd_cond = executar_insert_delete_update(
+                db=DB_NAME,
+                consulta_sql="""
+                    INSERT INTO condicao_aluno (id_aluno, id_tipo_condicao, descricao)
+                    VALUES (%s, %s, %s)
+                """,
+                parametros=(id_aluno, tipo, descricao.strip())
+            )
+            if qtd_cond < 0:
+                return (
+                    "SUCESSO PARCIAL: Aluno atualizado, mas uma das condições não pôde ser "
+                    "salva (pode ser uma condição duplicada para este aluno). "
+                    f"<a href='/atualizar/aluno?id={id_aluno}'>Revisar Aluno</a>"
+                )
 
     return f"SUCESSO: Aluno atualizado com sucesso! <a href='/consultar/aluno'>Ver Lista</a>"
 
