@@ -127,6 +127,20 @@ CREATE TABLE IF NOT EXISTS nota (
                              ON DELETE RESTRICT
 );  
 
+-- CRIAÇÃO DE TABELA PARA USUÁRIOS
+
+CREATE TABLE usuario_sistema (
+    id_usuario INT NOT NULL AUTO_INCREMENT,
+    nome VARCHAR(100) NOT NULL,
+    login VARCHAR(50) NOT NULL,
+    senha_hash VARCHAR(255) NOT NULL,
+    papel ENUM('secretaria', 'coordenacao') NOT NULL,
+    PRIMARY KEY (id_usuario),
+    CONSTRAINT uq_usuario_login UNIQUE (login)
+);
+
+
+
 -- ============================================================
 -- INSERÇÃO DE DADOS INICIAIS (DML)
 -- ============================================================

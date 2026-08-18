@@ -4,6 +4,7 @@ from datetime import date, datetime
 
 from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
 from mysql.connector import Error
 
 from db.db import (
@@ -40,19 +41,85 @@ def tela_login():
 
 @app.route("/login", methods=["POST"])
 def api_login():
-    usuario = request.form.get("usuario") or ""
-    senha = request.form.get("senha") or ""
+    login_digitado = request.form.get("login") or ""
+    senha_digitada = request.form.get("senha") or ""
 
     try:
-        with DatabaseConnection(db=DB_NAME, user=usuario, password=senha):
-            pass  # se não lançar erro, as credenciais são válidas
+        with DatabaseConnection(
+            db=DB_NAME,
+            user=os.getenv("DB_USER_COORDENACAO"),
+            password=os.getenv("DB_PASS_COORDENACAO"),
+        ) as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                "SELECT nome, senha_hash, papel FROM usuario_sistema WHERE login = %s",
+                (login_digitado,),
+            )
+            registro = cursor.fetchone()
     except Error:
-        return redirect(url_for("tela_login", erro="Usuário ou senha inválidos."))
+        return redirect(url_for("tela_login", erro="Erro ao acessar o banco de dados."))
 
-    session["db_user"] = usuario
-    session["db_password"] = senha
+    if not registro:
+        return redirect(url_for("tela_login", erro="Login ou senha inválidos."))
+
+    nome, senha_hash, papel = registro
+    if not check_password_hash(senha_hash, senha_digitada):
+        return redirect(url_for("tela_login", erro="Login ou senha inválidos."))
+
+    if papel == "secretaria":
+        session["db_user"] = os.getenv("DB_USER_SECRETARIA")
+        session["db_password"] = os.getenv("DB_PASS_SECRETARIA")
+    else:
+        session["db_user"] = os.getenv("DB_USER_COORDENACAO")
+        session["db_password"] = os.getenv("DB_PASS_COORDENACAO")
+
+    session["nome_usuario"] = nome
+    session["papel"] = papel
     return redirect(url_for("home"))
 
+
+def exigir_secretaria():
+    """Retorna uma resposta de bloqueio se quem está logado não for secretaria; senão, None."""
+    if session.get("papel") != "secretaria":
+        return "ACESSO NEGADO: apenas usuários do tipo secretaria podem acessar esta página. <a href='/'>Voltar</a>", 403
+    return None
+
+
+@app.route("/cadastrar/usuario", methods=["GET"])
+def tela_cadastrar_usuario():
+    bloqueio = exigir_secretaria()
+    if bloqueio:
+        return bloqueio
+    return render_template("cadastrar/usuario.jinja2", api="/api/cadastrar/usuario")
+
+
+@app.route("/api/cadastrar/usuario", methods=["POST"])
+def api_cadastrar_usuario():
+    bloqueio = exigir_secretaria()
+    if bloqueio:
+        return bloqueio
+
+    nome = request.form.get("nome") or ""
+    login_novo = request.form.get("login") or ""
+    senha_nova = request.form.get("senha") or ""
+    papel_novo = request.form.get("papel") or "coordenacao"
+
+    if not nome or not login_novo or not senha_nova:
+        return "ERRO: preencha nome, login e senha."
+
+    senha_hash = generate_password_hash(senha_nova)
+
+    qtd = executar_insert_delete_update(
+        db=DB_NAME,
+        consulta_sql="""
+            INSERT INTO usuario_sistema (nome, login, senha_hash, papel)
+            VALUES (%s, %s, %s, %s)
+        """,
+        parametros=(nome, login_novo, senha_hash, papel_novo),
+    )
+    if qtd < 0:
+        return "Deu ERRO ao cadastrar usuário. O login já pode estar em uso. <a href='/cadastrar/usuario'>Voltar</a>"
+    return f"SUCESSO: Usuário '{nome}' cadastrado como {papel_novo}! <a href='/'>Voltar à Homepage</a>"
 
 @app.route("/logout")
 def logout():

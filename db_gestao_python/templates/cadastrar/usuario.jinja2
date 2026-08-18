@@ -1,0 +1,23 @@
+<!-- cadastrar/usuario.jinja2 -->
+
+{% extends "_base.jinja2" %}
+
+{% block nav_title %}GESTÃO ESCOLAR{% endblock %}
+{% block title %}Cadastrar Usuário{% endblock %}
+
+{% block content %}
+
+<h2 class="text-center" style="margin-bottom: 20px;">
+    Cadastrar Novo Usuário do Sistema
+</h2>
+
+<form class="text-center" action="{{ api }}" method="post">
+    {{ macros.render_input("Nome:", "text", "nome", "") }}
+    {{ macros.render_input("Login:", "text", "login", "") }}
+    {{ macros.render_input("Senha:", "password", "senha", "") }}
+    {{ macros.render_select("Papel:", "papel", [("secretaria", "Secretaria Escolar"), ("coordenacao", "Coordenação Pedagógica")], "coordenacao") }}
+
+    <button type="submit" class="btn btn-primary mt-3">Cadastrar Usuário</button>
+</form>
+
+{% endblock %}

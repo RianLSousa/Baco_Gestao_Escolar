@@ -25,6 +25,12 @@ REVOKE INSERT, UPDATE, DELETE ON gestao_escolar.media_aluno FROM 'secretaria_esc
 
 GRANT SELECT ON gestao_escolar.* TO 'coordenacao_pedagogica'@'localhost';
 
+
+
+-- pós criação de tabela usuarios_sistema no projeto 
+
+GRANT INSERT, UPDATE, DELETE ON gestao_escolar.usuario_sistema TO 'secretaria_escolar'@'localhost';
+
 FLUSH PRIVILEGES;
 
 

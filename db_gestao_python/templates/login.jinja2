@@ -18,7 +18,7 @@
 {% endif %}
 
 <form class="text-center" action="{{ url_for('api_login') }}" method="post">
-    {{ macros.render_input("Usuário:", "text", "usuario", "") }}
+    {{ macros.render_input("Login:", "text", "login", "") }}
     {{ macros.render_input("Senha:", "password", "senha", "") }}
 
     <button type="submit" class="btn btn-primary mt-3">Entrar</button>
